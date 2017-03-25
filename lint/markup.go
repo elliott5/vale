@@ -51,10 +51,10 @@ var skipTags = []string{"script", "style", "pre", "code", "tt"}
 var skipClasses = []string{}
 
 func (l Linter) lintHTMLTokens(f *core.File, rawBytes []byte, fBytes []byte, offset int) {
-	var txt, attr string
+	var txt, attr, tag string
 	var tokt html.TokenType
 	var tok html.Token
-	var inBlock, skip, isHeading bool
+	var inBlock, skip bool
 
 	ctx := core.PrepText(string(rawBytes))
 	lines := strings.Count(ctx, "\n") + 1 + offset
@@ -71,13 +71,15 @@ func (l Linter) lintHTMLTokens(f *core.File, rawBytes []byte, fBytes []byte, off
 			inBlock = true
 		} else if skip && inBlock {
 			inBlock = false
-		} else if tokt == html.StartTagToken && heading.MatchString(txt) {
-			isHeading = true
-		} else if tokt == html.EndTagToken && isHeading {
-			isHeading = false
-		} else if tokt == html.TextToken && isHeading && !inBlock && txt != "" {
-			l.lintText(f, NewBlock(ctx, txt, "heading"+f.RealExt), lines, 0)
-		} else if tokt == html.TextToken && !inBlock && !skip {
+		} else if tokt == html.StartTagToken {
+			tag = txt
+		} else if tokt == html.TextToken && heading.MatchString(tag) {
+			b := NewBlock(ctx, txt, "text.heading"+f.RealExt)
+			l.lintText(f, b, lines, 0)
+		} else if tokt == html.TextToken && tag == "li" {
+			b := NewBlock(ctx, txt, "text.list"+f.RealExt)
+			l.lintText(f, b, lines, 0)
+		} else if tokt == html.TextToken && !inBlock && !skip && txt != "" {
 			l.lintProse(f, ctx, txt, lines, 0)
 		}
 		attr = getAttribute(tok, "class")
