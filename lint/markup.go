@@ -46,17 +46,22 @@ var options = blackfriday.Options{Extensions: commonExtensions}
 
 // HTML configuration.
 var heading = regexp.MustCompile(`^h\d$`)
-var skipTags = []string{"script", "style", "pre", "code", "tt", "figure"}
+var skipTags = []string{"script", "style", "pre", "figure"}
+var ignoreTags = []string{"code", "tt"}
 var skipClasses = []string{}
 
 func (l Linter) lintHTMLTokens(f *core.File, rawBytes []byte, fBytes []byte, offset int) {
 	var txt, attr string
 	var tokt html.TokenType
 	var tok html.Token
-	var inBlock, skip, isHeading bool
+	var inBlock, skip, ignore bool
 
 	ctx := core.PrepText(string(rawBytes))
 	lines := strings.Count(ctx, "\n") + 1 + offset
+	// If your docs are `aimed` at helping people code, then
+	// If your docs are ******* at helping people code, then
+	buf := bytes.NewBufferString("")
+	queue := []string{}
 
 	tokens := html.NewTokenizer(bytes.NewReader(fBytes))
 	for {
@@ -68,20 +73,35 @@ func (l Linter) lintHTMLTokens(f *core.File, rawBytes []byte, fBytes []byte, off
 			break
 		} else if tokt == html.StartTagToken && skip {
 			inBlock = true
+		} else if tokt == html.StartTagToken {
+			ignore = core.StringInSlice(txt, ignoreTags)
 		} else if skip && inBlock {
 			inBlock = false
-		} else if tokt == html.StartTagToken && heading.MatchString(txt) {
-			isHeading = true
-		} else if tokt == html.EndTagToken && isHeading {
-			isHeading = false
-		} else if tokt == html.TextToken && isHeading && !inBlock && txt != "" {
-			l.lintText(f, NewBlock(ctx, txt, "heading"+f.RealExt), lines, 0)
-		} else if tokt == html.TextToken && !inBlock && !skip {
-			l.lintProse(f, ctx, txt, lines, 0)
+		} else if tokt == html.EndTagToken && !core.StringInSlice(txt, ignoreTags) {
+			text := buf.String()
+			if heading.MatchString(txt) {
+				l.lintText(f, NewBlock(ctx, text, "heading"+f.RealExt), lines, 0)
+			} else {
+				l.lintProse(f, ctx, text, lines, 0)
+			}
+			for _, s := range queue {
+				ctx = updateCtx(ctx, s, html.TextToken)
+			}
+			queue = []string{}
+			buf.Reset()
+		} else if tokt == html.TextToken && !inBlock {
+			queue = append(queue, txt)
+			if ignore {
+				txt, _ = core.Substitute(txt, txt)
+				txt = " " + txt + " "
+				ignore = false
+			}
+			buf.WriteString(txt)
+		} else if tokt == html.TextToken {
+			ctx = updateCtx(ctx, txt, tokt)
 		}
 		attr = getAttribute(tok, "class")
 		ctx = clearElements(ctx, tok)
-		ctx = updateCtx(ctx, txt, tokt)
 	}
 }
 

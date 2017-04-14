@@ -97,6 +97,7 @@ func initialPosition(ctx string, substring string, loc []int) int {
 	}
 	// If the first match is bounded or there's no bounded option, we take the
 	// first occurrence of `substring`.
+	fmt.Println("LOOKING", substring, ctx)
 	return idx + 1
 }
 
@@ -105,7 +106,7 @@ func FindLoc(count int, ctx string, s string, loc []int, pad int) (int, []int) {
 	var length int
 
 	substring := s[loc[0]:loc[1]]
-	pos := initialPosition(ctx, substring, loc)
+	pos := initialPosition(ctx, strings.Split(substring, "*")[0], loc)
 
 	counter := 0
 	lines := strings.SplitAfter(ctx, "\n")
