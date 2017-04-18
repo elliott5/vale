@@ -25,20 +25,20 @@ cross:
 	GOOS=linux GOARCH=amd64 go build ${LDFLAGS}
 	tar -czvf "$(BUILD_DIR)/Linux-64bit.tar.gz" ./vale
 
-	GOOS=linux GOARCH=386 go build ${LDFLAGS}
-	tar -czvf "$(BUILD_DIR)/linux-386.tar.gz" ./vale
+	# GOOS=linux GOARCH=386 go build ${LDFLAGS}
+	# tar -czvf "$(BUILD_DIR)/linux-386.tar.gz" ./vale
 
 	GOOS=darwin GOARCH=amd64 go build ${LDFLAGS}
 	tar -czvf "$(BUILD_DIR)/macOS-64bit.tar.gz" ./vale
 
-	GOOS=darwin GOARCH=386 go build ${LDFLAGS}
-	tar -czvf "$(BUILD_DIR)/darwin-386.tar.gz" ./vale
+	# GOOS=darwin GOARCH=386 go build ${LDFLAGS}
+	# tar -czvf "$(BUILD_DIR)/darwin-386.tar.gz" ./vale
 
 	GOOS=windows GOARCH=amd64 go build ${LDFLAGS}
 	zip -r "$(BUILD_DIR)/Windows-64bit.zip" ./vale.exe
 
-	GOOS=windows GOARCH=386 go build ${LDFLAGS}
-	zip -r "$(BUILD_DIR)/windows-386.zip" ./vale.exe
+	# GOOS=windows GOARCH=386 go build ${LDFLAGS}
+	# zip -r "$(BUILD_DIR)/windows-386.zip" ./vale.exe
 
 	scripts/sign.sh $(BUILD_DIR)
 
@@ -82,11 +82,12 @@ lint:
 		./core ./lint ./ui ./check
 
 setup:
+	go get -u github.com/client9/misspell/cmd/misspell
 	go get golang.org/x/perf/cmd/benchstat
 	go get golang.org/x/tools/cmd/benchcmp
 	go get github.com/aclements/go-misc/benchmany
 	go get -u github.com/alecthomas/gometalinter
-	go get -u github.com/jteeuwen/go-bindata/...	
+	go get -u github.com/jteeuwen/go-bindata/...
 	gometalinter --install
 	bundle install
 	gem specific_install -l https://github.com/jdkato/aruba.git -b d-win-fix
